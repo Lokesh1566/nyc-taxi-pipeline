@@ -1,0 +1,16 @@
+# Snowflake connection config.
+# Copy this file to snowflake_config.yaml and fill in your values.
+# NEVER commit the real config file — it's in .gitignore.
+
+user: YOUR_USERNAME
+password: YOUR_PASSWORD
+account: YOUR_ACCOUNT_ID   # e.g. abc12345.us-east-1
+warehouse: COMPUTE_WH      # whatever warehouse you're using
+database: TAXI_PIPELINE
+schema: PUBLIC
+role: ACCOUNTADMIN         # or a more scoped role
+
+# Notes:
+# - account is the part before .snowflakecomputing.com in your URL
+# - for the free trial, warehouse COMPUTE_WH is created by default
+# - if you hit auth issues, try generating a key-pair auth instead of password

@@ -1,0 +1,75 @@
+# python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.Python
+build/
+dist/
+*.egg
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# venv
+venv/
+.venv/
+env/
+ENV/
+
+# jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# data — we don't commit the TLC data (too big, ~150MB per month)
+data/raw/*.parquet
+data/raw/*.csv
+data/raw/streaming/
+data/processed/
+data/checkpoints/
+
+# but keep the directory structure
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+
+# logs
+logs/
+*.log
+
+# spark
+spark-warehouse/
+metastore_db/
+derby.log
+.spark-shell*
+
+# credentials — never commit these
+config/snowflake_config.yaml
+.env
+*.pem
+*.key
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# airflow
+airflow.db
+airflow.cfg
+webserver_config.py
+standalone_admin_password.txt
+
+# streamlit
+.streamlit/secrets.toml
+
+# misc
+.coverage
+htmlcov/
+*.pid

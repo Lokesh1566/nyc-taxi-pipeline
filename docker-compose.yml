@@ -1,0 +1,135 @@
+# Local dev stack: Airflow (webserver + scheduler), Postgres, Spark.
+#
+# This is stripped down from the official Airflow compose. I removed:
+#   - redis + celery worker (we use LocalExecutor)
+#   - flower (not needed without celery)
+#   - triggerer (we don't use deferrable operators)
+#
+# Keeps it way simpler and the whole thing fits in ~4GB of RAM.
+
+x-airflow-common: &airflow-common
+  image: apache/airflow:2.8.1-python3.10
+  environment: &airflow-common-env
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+    AIRFLOW__CORE__FERNET_KEY: ''
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
+    AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+    AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session'
+    # install our extra deps on container start — fine for dev, not for prod
+    _PIP_ADDITIONAL_REQUIREMENTS: >-
+      apache-airflow-providers-snowflake==5.2.1
+      apache-airflow-providers-apache-spark==4.7.0
+      snowflake-connector-python==3.6.0
+      pyyaml==6.0.1
+  volumes:
+    - ./dags:/opt/airflow/dags
+    - ./spark_jobs:/opt/pipeline/spark_jobs
+    - ./scripts:/opt/pipeline/scripts
+    - ./sql:/opt/pipeline/sql
+    - ./tests:/opt/pipeline/tests
+    - ./config:/opt/pipeline/config
+    - ./data:/opt/pipeline/data
+    - ./logs:/opt/airflow/logs
+  user: "${AIRFLOW_UID:-50000}:0"
+  depends_on: &airflow-common-depends-on
+    postgres:
+      condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres-db-volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 10s
+      retries: 5
+    restart: always
+
+  airflow-webserver:
+    <<: *airflow-common
+    command: webserver
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: always
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-scheduler:
+    <<: *airflow-common
+    command: scheduler
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8974/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: always
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-init:
+    <<: *airflow-common
+    entrypoint: /bin/bash
+    # create the admin user once
+    command:
+      - -c
+      - |
+        airflow db migrate
+        airflow users create \
+          --username admin \
+          --firstname Admin \
+          --lastname User \
+          --role Admin \
+          --email admin@example.com \
+          --password admin || true
+    environment:
+      <<: *airflow-common-env
+      _AIRFLOW_DB_MIGRATE: 'true'
+      _AIRFLOW_WWW_USER_CREATE: 'true'
+      _AIRFLOW_WWW_USER_USERNAME: admin
+      _AIRFLOW_WWW_USER_PASSWORD: admin
+    user: "0:0"
+
+  # optional: spark master/worker for submitting jobs cluster-style.
+  # for most local dev work `spark-submit --master local[4]` is enough
+  # and you can skip these.
+  spark-master:
+    image: bitnami/spark:3.5
+    environment:
+      SPARK_MODE: master
+    ports:
+      - "7077:7077"
+      - "8081:8080"   # spark master UI (airflow uses 8080)
+    volumes:
+      - ./spark_jobs:/opt/pipeline/spark_jobs
+      - ./data:/opt/pipeline/data
+
+  spark-worker:
+    image: bitnami/spark:3.5
+    environment:
+      SPARK_MODE: worker
+      SPARK_MASTER_URL: spark://spark-master:7077
+      SPARK_WORKER_MEMORY: 2g
+      SPARK_WORKER_CORES: 2
+    depends_on:
+      - spark-master
+    volumes:
+      - ./spark_jobs:/opt/pipeline/spark_jobs
+      - ./data:/opt/pipeline/data
+
+volumes:
+  postgres-db-volume:

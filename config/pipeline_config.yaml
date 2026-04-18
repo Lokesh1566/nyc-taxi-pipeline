@@ -1,0 +1,38 @@
+# Pipeline-wide config.
+# Most knobs are here. Secrets live in snowflake_config.yaml / .env.
+
+paths:
+  raw_dir: data/raw
+  streaming_dir: data/raw/streaming
+  bronze_dir: data/processed/bronze
+  silver_dir: data/processed/silver
+  gold_dir: data/processed/gold
+  quarantine_dir: data/processed/quarantine
+  checkpoint_dir: data/checkpoints
+
+streaming:
+  batch_size: 5000
+  interval_seconds: 2
+  max_files_per_trigger: 3
+  trigger_interval: "30 seconds"
+
+spark:
+  driver_memory: "4g"
+  executor_memory: "2g"
+  shuffle_partitions: 16
+  adaptive_enabled: true
+
+data_quality:
+  silver_fail_on_error: true
+  quarantine_bad_rows: true
+  # see tests/great_expectations/run_validation.py for the full expectation set
+
+monitoring:
+  bronze_freshness_threshold_minutes: 30
+  alert_email: ""   # set to your email for real alerts
+
+# TLC-specific stuff
+tlc:
+  default_year: 2023
+  default_month: 6
+  taxi_type: yellow   # yellow | green | fhv | fhvhv
