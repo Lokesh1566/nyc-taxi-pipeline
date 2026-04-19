@@ -9,15 +9,18 @@ I started this because I wanted to actually *use* the tools on my resume instead
 ## Flow
 
 The pipeline simulates a streaming source (since the real NYC TLC feed is batch-only), processes it with Spark, runs quality validation, and loads aggregates to Snowflake. A Streamlit dashboard sits on top of the warehouse.
+
+```
 NYC TLC Data  →  File Stream  →  Spark Structured Streaming
-↓
-Bronze → Silver → Gold
-↓
-Great Expectations (QC)
-↓
-Snowflake Warehouse
-↓
-Streamlit Dashboard
+                                        ↓
+                              Bronze → Silver → Gold
+                                        ↓
+                              Great Expectations (QC)
+                                        ↓
+                              Snowflake Warehouse
+                                        ↓
+                              Streamlit Dashboard
+```
 
 Airflow orchestrates the batch backfill jobs and the daily aggregation runs. Streaming is handled by a long-running Spark job that Airflow health-checks but doesn't directly trigger.
 
@@ -34,6 +37,8 @@ A few design choices worth calling out:
 **Great Expectations for data quality** — I tried writing custom validation functions first and quickly realized I was reinventing a worse version of GE. Switched after about a day of pain.
 
 ## Project structure
+
+```
 nyc-taxi-pipeline/
 ├── dags/                      # Airflow DAGs
 │   ├── taxi_ingestion_dag.py
@@ -66,6 +71,7 @@ nyc-taxi-pipeline/
 ├── docker-compose.yml
 ├── requirements.txt
 └── Makefile
+```
 
 ## Quick start
 
