@@ -184,7 +184,7 @@ Medallion architecture pattern borrowed from [Databricks' lakehouse documentatio
 
 ## Contact
 
-Questions or suggestions? Open an issue or email me: lokeshreddye@iu.edu
+Questions or suggestions? Open an issue or email me: redfylokesh@gmail.com
 
 ---
 
